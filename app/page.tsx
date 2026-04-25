@@ -96,7 +96,7 @@ export default function Home() {
         <header className="mb-6 flex items-end justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
-              Style Slides
+              Tone Sliders
             </h1>
             <p className="text-sm text-muted-foreground">
               슬라이더로 문체를 좌표화 — 같은 원문을 다른 톤으로 비교
