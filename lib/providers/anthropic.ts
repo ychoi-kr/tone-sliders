@@ -1,19 +1,46 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { parseModelId } from "../models";
 import { TRANSFORM_SYSTEM_PROMPT, buildUserMessage } from "../prompt";
-import type { TransformRequest, TransformResult } from "./types";
+import type { TransformEvent, TransformRequest } from "./types";
 
-export async function transformWithAnthropic(
+export async function callAnthropicJson(opts: {
+  model: string;
+  systemPrompt: string;
+  userMessage: string;
+  apiKey?: string;
+  signal?: AbortSignal;
+}): Promise<string> {
+  const apiKey = opts.apiKey ?? process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not set");
+  const client = new Anthropic({ apiKey });
+
+  const response = await client.messages.create(
+    {
+      model: opts.model,
+      max_tokens: 512,
+      temperature: 0,
+      system: opts.systemPrompt,
+      messages: [{ role: "user", content: opts.userMessage }],
+    },
+    { signal: opts.signal },
+  );
+  return response.content
+    .filter((block) => block.type === "text")
+    .map((block) => block.text)
+    .join("");
+}
+
+export async function* streamTransformWithAnthropic(
   req: TransformRequest,
-): Promise<TransformResult> {
+): AsyncGenerator<TransformEvent> {
   const apiKey = req.apiKey ?? process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY is not set");
+    yield { type: "error", message: "ANTHROPIC_API_KEY is not set" };
+    return;
   }
 
   const { model } = parseModelId(req.model);
   const client = new Anthropic({ apiKey });
-
   const userText = buildUserMessage(
     req.source,
     req.axes,
@@ -21,7 +48,7 @@ export async function transformWithAnthropic(
     req.speechLevel,
   );
 
-  const response = await client.messages.create(
+  const stream = client.messages.stream(
     {
       model,
       max_tokens: 4096,
@@ -33,26 +60,28 @@ export async function transformWithAnthropic(
           cache_control: { type: "ephemeral" },
         },
       ],
-      messages: [
-        {
-          role: "user",
-          content: userText,
-        },
-      ],
+      messages: [{ role: "user", content: userText }],
     },
     { signal: req.signal },
   );
 
-  const text = response.content
-    .filter((block) => block.type === "text")
-    .map((block) => block.text)
-    .join("");
+  for await (const event of stream) {
+    if (
+      event.type === "content_block_delta" &&
+      event.delta.type === "text_delta"
+    ) {
+      yield { type: "delta", text: event.delta.text };
+    }
+  }
 
-  return {
-    text,
-    inputTokens: response.usage.input_tokens,
-    outputTokens: response.usage.output_tokens,
-    cachedInputTokens: response.usage.cache_read_input_tokens ?? 0,
+  const final = await stream.finalMessage();
+  yield {
+    type: "done",
     meta: { provider: "anthropic", model },
+    usage: {
+      inputTokens: final.usage.input_tokens,
+      outputTokens: final.usage.output_tokens,
+      cachedInputTokens: final.usage.cache_read_input_tokens ?? 0,
+    },
   };
 }

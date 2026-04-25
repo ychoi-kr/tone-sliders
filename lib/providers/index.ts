@@ -1,14 +1,47 @@
-import { parseModelId } from "../models";
-import { transformWithAnthropic } from "./anthropic";
-import { transformWithOpenAICompat } from "./openai-compat";
-import type { TransformRequest, TransformResult } from "./types";
+import { parseModelId, type ProviderId } from "../models";
+import { callAnthropicJson, streamTransformWithAnthropic } from "./anthropic";
+import {
+  callOpenAICompatJson,
+  streamTransformWithOpenAICompat,
+} from "./openai-compat";
+import type { TransformEvent, TransformRequest } from "./types";
+import type { ModelId } from "../models";
 
-export async function transform(req: TransformRequest): Promise<TransformResult> {
+export function streamTransform(
+  req: TransformRequest,
+): AsyncGenerator<TransformEvent> {
   const { provider } = parseModelId(req.model);
   if (provider === "anthropic") {
-    return transformWithAnthropic(req);
+    return streamTransformWithAnthropic(req);
   }
-  return transformWithOpenAICompat(req);
+  return streamTransformWithOpenAICompat(req);
 }
 
-export type { TransformRequest, TransformResult };
+export async function callProviderJson(opts: {
+  modelId: ModelId;
+  systemPrompt: string;
+  userMessage: string;
+  apiKey?: string;
+  signal?: AbortSignal;
+}): Promise<string> {
+  const { provider, model } = parseModelId(opts.modelId);
+  if (provider === "anthropic") {
+    return callAnthropicJson({
+      model,
+      systemPrompt: opts.systemPrompt,
+      userMessage: opts.userMessage,
+      apiKey: opts.apiKey,
+      signal: opts.signal,
+    });
+  }
+  return callOpenAICompatJson({
+    provider: provider as ProviderId,
+    model,
+    systemPrompt: opts.systemPrompt,
+    userMessage: opts.userMessage,
+    apiKey: opts.apiKey,
+    signal: opts.signal,
+  });
+}
+
+export type { TransformRequest, TransformEvent };
