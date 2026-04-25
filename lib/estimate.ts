@@ -4,7 +4,7 @@ import type { AxesValues, Language, ModelId, SpeechLevel } from "./models";
 // Language re-export (호출 측 편의)
 export type { Language };
 
-export const ESTIMATE_PROMPT_VERSION = "estimate-v2";
+export const ESTIMATE_PROMPT_VERSION = "estimate-v3";
 
 export const ESTIMATE_SYSTEM_PROMPT = `당신은 문체 분석기다. 입력된 한국어 또는 외국어 텍스트를 5개 축의 정수 좌표(각 0~10)로 분류하고, 텍스트의 언어와 한국어인 경우 종결어미체도 함께 분류한다.
 
@@ -38,12 +38,14 @@ export const ESTIMATE_SYSTEM_PROMPT = `당신은 문체 분석기다. 입력된 
 7: 약한 의인 ("Docker가 받아 온다")
 10: 의인화 적극 ("Docker가 친절하게 받아 온다")
 
-[5. closure — 마무리]
-0: 신중·여운 ("…한 측면이 있다고 볼 수 있다")
-3: 부드러운 결론 ("…인 듯하다")
+[5. assertion — 확신]
+0: 신중·여운, 강한 헤징 ("…한 측면이 있다고 볼 수 있다", "…인 경향이 있다")
+3: 약한 헤징 ("…인 듯하다", "…로 보인다")
 5: 일반
-7: 명료 ("…이다")
-10: 단호·선언 ("이게 답이다.")
+7: 명료한 단언 ("…이다", "…다")
+10: 단호·단언, 헤징 제거 ("이게 답이다.")
+
+이 축은 본문 *모든 문장*의 단언 강도를 본다. 결론 위치 한정이 아니다.
 
 언어 감지 (language):
 - "ko" — 한국어
@@ -66,7 +68,7 @@ export const ESTIMATE_SYSTEM_PROMPT = `당신은 문체 분석기다. 입력된 
   "authorPresence": 0~10 정수,
   "rhetorical": 0~10 정수,
   "anthropomorphism": 0~10 정수,
-  "closure": 0~10 정수,
+  "assertion": 0~10 정수,
   "speechLevel": "haera" | "haeyo" | "hapsho" | "hae" | null
 }`;
 
@@ -138,7 +140,7 @@ export function parseEstimateJson(raw: string): EstimateResult {
     authorPresence: clampAxis(parsed.authorPresence),
     rhetorical: clampAxis(parsed.rhetorical),
     anthropomorphism: clampAxis(parsed.anthropomorphism),
-    closure: clampAxis(parsed.closure),
+    assertion: clampAxis(parsed.assertion),
   };
 
   let speechLevel: SpeechLevel | null = null;

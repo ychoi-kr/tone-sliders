@@ -16,7 +16,7 @@ Each axis is an integer from 0 to 10.
 | Author presence | invisible | actively intervening |
 | Rhetorical flourish | dry, direct | ornate, twisty, figurative |
 | Voice agency | functional | anthropomorphic |
-| Closure | careful, lingering | decisive, declarative |
+| Assertion | careful, heavy hedging | decisive, hedging-free |
 
 Korean output also exposes a sentence-ending style (해라 / 해요 / 합쇼 / 해) as a separate categorical option, orthogonal to the five sliders.
 
@@ -50,3 +50,21 @@ Model catalog single source of truth: `lib/models.ts`.
 - **Four output languages** — Korean / English / Japanese / Chinese (Simplified)
 
 Full spec: [`PRD.md`](./PRD.md) (Korean). For repo layout, stack, and contributor notes, see [`DEVELOPMENT.md`](./DEVELOPMENT.md) (Korean).
+
+## API
+
+Once you find a coordinate setting you like in the UI, the panel's **API URL** button copies an endpoint URL with those settings baked in. Useful for letting agents (e.g., Claude Code) transform new text with the same tone and self-compare against the original.
+
+```bash
+curl -X POST \
+  'http://localhost:3000/api/v1/transform?register=5&assertion=7&lang=ko&speech=haera&model=anthropic/claude-haiku-4-5-20251001' \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"source text here..."}'
+```
+
+- All settings live in the query string; the source goes in the JSON body's `text` field.
+- Missing axes default to 5 (neutral) — partial specifications are fine.
+- Default response is JSON; pass `?stream=true` for SSE.
+- Override the server's API key with `X-Provider-Key` header (otherwise the server falls back to `.env.local`).
+- Self-describing schema: `GET /api/v1/transform`
+- Model catalog: `GET /api/v1/models`

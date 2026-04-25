@@ -35,7 +35,7 @@
 | 저자 가시성 (Author presence) | 보이지 않음 | 적극 개입 (메타·평가) |
 | 수사·재치 (Rhetorical flourish) | 건조·직설 | 화려·반전·비유 |
 | 의인화 (Voice agency) | 기능적 | 의인화 |
-| 마무리 (Closure) | 신중·여운 | 단호·선언 |
+| 확신 (Assertion) | 신중·여운, 강한 헤징 | 단호·단언, 헤징 제거 |
 
 ### F3. 패널(창) 비교
 
@@ -144,7 +144,7 @@ MVP: 한국어 (ko), English (en), 日本語 (ja), 中文 (zh-CN)
 ```json
 요청: { "source": "...", "language": "ko", "model": "anthropic/claude-haiku-4-5-20251001" }
 응답: {
-  "axes": { "register": 4, "authorPresence": 3, "rhetorical": 2, "anthropomorphism": 1, "closure": 5 },
+  "axes": { "register": 4, "authorPresence": 3, "rhetorical": 2, "anthropomorphism": 1, "assertion": 5 },
   "speechLevel": "haeyo",
   "promptVersion": "estimate-v1",
   "fromCache": true
@@ -235,10 +235,12 @@ MVP: 한국어 (ko), English (en), 日本語 (ja), 中文 (zh-CN)
 5 = 일반
 10 = 의인 ("Docker가 친절하게 받아온다")
 
-[축 5: 마무리]
-0 = 신중 ("…한 측면이 있다고 볼 수 있다")
+[축 5: 확신]
+0 = 신중·여운, 강한 헤징 ("…한 측면이 있다고 볼 수 있다", "…인 경향이 있다")
 5 = 일반
-10 = 단호 ("이게 답이다")
+10 = 단호·단언, 헤징 제거 ("…한다", "이게 답이다")
+
+이 축은 본문 *모든 문장*의 단언 강도를 조절한다. 결론 위치 한정이 아니다.
 
 규칙:
 - 사실관계와 의미는 바꾸지 않는다
@@ -258,7 +260,7 @@ MVP: 한국어 (ko), English (en), 日本語 (ja), 中文 (zh-CN)
 ```
 [원문]
 
-좌표: 격식=3, 저자=2, 수사=2, 의인화=1, 마무리=4
+좌표: 격식=3, 저자=2, 수사=2, 의인화=1, 확신=4
 ```
 
 ### Prompt Caching (프로바이더별 차이)
@@ -337,7 +339,7 @@ CUSTOM_OPENAI_LABEL=OpenRouter   # UI 표시용
     "authorPresence": 2,
     "rhetorical": 2,
     "anthropomorphism": 1,
-    "closure": 4
+    "assertion": 4
   }
 }
 ```
@@ -434,7 +436,7 @@ CUSTOM_OPENAI_LABEL=OpenRouter   # UI 표시용
 │            │ 저자      ●──◐───   │ 저자      ◐────●──  │
 │ [원문      │ 수사      ●──◐───   │ 수사      ◐────●──  │
 │  영역]     │ 의인      ●──◐───   │ 의인      ●──◐────  │
-│            │ 마무리    ◐─●────   │ 마무리    ◐──────●  │
+│            │ 확신      ◐─●────   │ 확신      ◐──────●  │
 │            │ ko · Opus           │ en · Sonnet         │
 │            ├─────────────────────┼─────────────────────┤
 │            │ [출력 — 스트리밍]   │ [출력 — 스트리밍]   │

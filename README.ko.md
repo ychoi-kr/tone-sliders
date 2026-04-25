@@ -16,7 +16,7 @@
 | 저자 가시성 (Author presence) | 보이지 않음 | 적극 개입 |
 | 수사·재치 (Rhetorical flourish) | 건조·직설 | 화려·반전·비유 |
 | 의인화 (Voice agency) | 기능적 | 의인화 |
-| 마무리 (Closure) | 신중·여운 | 단호·선언 |
+| 확신 (Assertion) | 신중·여운, 강한 헤징 | 단호·단언, 헤징 제거 |
 
 한국어 출력에는 종결어미(해라/해요/합쇼/해)를 5축과 직교한 별도 옵션으로 둔다.
 
@@ -50,3 +50,21 @@ UI에서 직접 입력한 키는 환경변수보다 우선한다.
 - **언어 4종** — 한국어 / English / 日本語 / 中文
 
 상세 사양은 [`PRD.md`](./PRD.md), 저장소를 손볼 때의 구조·스택은 [`DEVELOPMENT.md`](./DEVELOPMENT.md) 참조.
+
+## API
+
+화면에서 마음에 든 좌표를 찾았다면 패널의 **API URL** 버튼으로 그 세팅이 박힌 엔드포인트를 복사해 외부에서 호출할 수 있다. Claude Code 같은 에이전트가 같은 톤으로 새 텍스트를 변환·비교하는 용도.
+
+```bash
+curl -X POST \
+  'http://localhost:3000/api/v1/transform?register=5&assertion=7&lang=ko&speech=haera&model=anthropic/claude-haiku-4-5-20251001' \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"여기에 원문..."}'
+```
+
+- 모든 세팅은 query string, 원문은 JSON 본문의 `text` 필드
+- 5개 축은 누락 시 5(중립)로 채움 — 일부만 지정해도 됨
+- 응답은 JSON 기본, `?stream=true` 추가 시 SSE
+- 자기 키를 쓰려면 `X-Provider-Key` 헤더 (없으면 서버 `.env.local` 폴백)
+- 스키마 자기소개: `GET /api/v1/transform`
+- 모델 카탈로그: `GET /api/v1/models`

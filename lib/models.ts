@@ -17,7 +17,7 @@ export interface AxesValues {
   authorPresence: number;
   rhetorical: number;
   anthropomorphism: number;
-  closure: number;
+  assertion: number;
 }
 
 export interface ModelMeta {
@@ -152,7 +152,7 @@ export const DEFAULT_AXES: AxesValues = {
   authorPresence: 5,
   rhetorical: 5,
   anthropomorphism: 5,
-  closure: 5,
+  assertion: 5,
 };
 
 export const DEFAULT_LANGUAGE: Language = "ko";
@@ -185,7 +185,7 @@ export const AXIS_LABELS: Record<keyof AxesValues, { ko: string; en: string }> =
     authorPresence: { ko: "저자 가시성", en: "Author presence" },
     rhetorical: { ko: "수사·재치", en: "Rhetorical flourish" },
     anthropomorphism: { ko: "의인화", en: "Voice agency" },
-    closure: { ko: "마무리", en: "Closure" },
+    assertion: { ko: "확신", en: "Assertion" },
   };
 
 export const SPEECH_LEVELS_KO: { id: SpeechLevel; label: string; example: string }[] = [

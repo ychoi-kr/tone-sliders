@@ -144,7 +144,7 @@ export default function Home() {
                 <span className="font-mono">
                   ◆ {estimate.language} · {estimate.axes.register}/
                   {estimate.axes.authorPresence}/{estimate.axes.rhetorical}/
-                  {estimate.axes.anthropomorphism}/{estimate.axes.closure}
+                  {estimate.axes.anthropomorphism}/{estimate.axes.assertion}
                   {estimate.speechLevel && ` · ${estimate.speechLevel}`}
                   {estimate.fromCache && " · cached"}
                 </span>

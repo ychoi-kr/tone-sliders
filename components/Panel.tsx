@@ -31,7 +31,7 @@ const AXIS_KEYS: (keyof AxesValues)[] = [
   "authorPresence",
   "rhetorical",
   "anthropomorphism",
-  "closure",
+  "assertion",
 ];
 
 const LANGUAGE_OPTIONS: { id: Language; label: string }[] = [
@@ -131,7 +131,28 @@ export function Panel({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [apiUrlCopied, setApiUrlCopied] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+
+  const handleCopyApiUrl = async () => {
+    const params = new URLSearchParams();
+    for (const key of AXIS_KEYS) {
+      params.set(key, String(state.axes[key]));
+    }
+    params.set("lang", state.language);
+    if (state.language === "ko") {
+      params.set("speech", state.speechLevel);
+    }
+    params.set("model", state.model);
+    const url = `${window.location.origin}/api/v1/transform?${params.toString()}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setApiUrlCopied(true);
+      window.setTimeout(() => setApiUrlCopied(false), 1500);
+    } catch {
+      setError("클립보드 접근 실패. HTTPS 또는 localhost 환경이 필요합니다.");
+    }
+  };
 
   const handleCopyPrompt = async () => {
     const text = buildPromptExport({
@@ -414,6 +435,15 @@ export function Panel({
           title="시스템 프롬프트 + 사용자 메시지 + 설정을 클립보드에 복사 (Claude 웹·ChatGPT 등에 그대로 붙여넣기)"
         >
           {copied ? "복사됨" : "프롬프트 복사"}
+        </Button>
+        <Button
+          onClick={handleCopyApiUrl}
+          variant="outline"
+          size="sm"
+          className="min-w-[6rem] text-xs"
+          title="현재 슬라이더 설정으로 작동하는 API 엔드포인트 URL 복사 (Claude Code 등 에이전트가 호출)"
+        >
+          {apiUrlCopied ? "복사됨" : "API URL"}
         </Button>
       </div>
 
