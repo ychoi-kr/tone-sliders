@@ -3,13 +3,13 @@ import {
   buildEstimateUserMessage,
   EstimateParseError,
   ESTIMATE_PROMPT_VERSION,
+  ESTIMATE_SYSTEM_PROMPT,
   getCachedEstimate,
   makeCacheKey,
   parseEstimateJson,
   setCachedEstimate,
-  ESTIMATE_SYSTEM_PROMPT,
 } from "@/lib/estimate";
-import { DEFAULT_ESTIMATE_MODEL, type Language, type ModelId } from "@/lib/models";
+import { DEFAULT_ESTIMATE_MODEL, type ModelId } from "@/lib/models";
 import { callProviderJson } from "@/lib/providers";
 
 export const runtime = "nodejs";
@@ -17,7 +17,6 @@ export const dynamic = "force-dynamic";
 
 interface RequestBody {
   source: string;
-  language?: Language;
   model?: ModelId;
 }
 
@@ -32,9 +31,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "source is required" }, { status: 400 });
   }
 
-  const language = body.language ?? "ko";
   const model = body.model ?? DEFAULT_ESTIMATE_MODEL;
-  const cacheKey = makeCacheKey(body.source, model, language);
+  const cacheKey = makeCacheKey(body.source, model);
   const cached = getCachedEstimate(cacheKey);
   if (cached) {
     return NextResponse.json({
@@ -51,7 +49,7 @@ export async function POST(request: Request) {
     const raw = await callProviderJson({
       modelId: model,
       systemPrompt: ESTIMATE_SYSTEM_PROMPT,
-      userMessage: buildEstimateUserMessage(body.source, language),
+      userMessage: buildEstimateUserMessage(body.source),
       apiKey: userKeyHeader,
       signal: request.signal,
     });
@@ -59,7 +57,7 @@ export async function POST(request: Request) {
     setCachedEstimate(cacheKey, result);
     const tookMs = Date.now() - t0;
     console.log(
-      `[estimate] model=${model} lang=${language} took=${tookMs}ms axes=${JSON.stringify(result.axes)} speech=${result.speechLevel}`,
+      `[estimate] model=${model} took=${tookMs}ms lang=${result.language} axes=${JSON.stringify(result.axes)} speech=${result.speechLevel}`,
     );
     return NextResponse.json({
       ...result,

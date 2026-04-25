@@ -75,3 +75,34 @@ export function buildUserMessage(
     axisLine,
   ].join("\n");
 }
+
+/** 다른 LLM 도구(Claude 웹 / ChatGPT 등)에 붙여넣어 그대로 재현할 수 있는
+ *  단일 텍스트 익스포트. 시스템 프롬프트·사용자 메시지·설정을 명확히 구분한다. */
+export function buildPromptExport(opts: {
+  source: string;
+  axes: AxesValues;
+  language: Language;
+  speechLevel: SpeechLevel;
+  modelId: string;
+}): string {
+  const userMessage = buildUserMessage(
+    opts.source,
+    opts.axes,
+    opts.language,
+    opts.speechLevel,
+  );
+  return [
+    "=== System prompt (시스템 프롬프트 / Custom Instructions 칸에 붙여넣기) ===",
+    "",
+    TRANSFORM_SYSTEM_PROMPT,
+    "",
+    "=== User message (첫 사용자 메시지로 붙여넣기) ===",
+    "",
+    userMessage,
+    "",
+    "=== Settings (참고용) ===",
+    `- Model: ${opts.modelId}`,
+    `- Language: ${opts.language}`,
+    `- Speech level: ${opts.speechLevel}`,
+  ].join("\n");
+}

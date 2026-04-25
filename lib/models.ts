@@ -158,6 +158,27 @@ export const DEFAULT_AXES: AxesValues = {
 export const DEFAULT_LANGUAGE: Language = "ko";
 export const DEFAULT_SPEECH_LEVEL_KO: SpeechLevel = "haeyo";
 
+const SUPPORTED_LANGUAGES: ReadonlySet<Language> = new Set([
+  "ko",
+  "en",
+  "ja",
+  "zh-CN",
+]);
+
+/** 브라우저 언어 태그(navigator.language)를 지원 언어 중 하나로 매핑.
+ *  매칭 실패 시 DEFAULT_LANGUAGE 반환. */
+export function matchBrowserLanguage(tag: string | undefined): Language {
+  if (!tag) return DEFAULT_LANGUAGE;
+  const lower = tag.toLowerCase();
+  if (lower.startsWith("ko")) return "ko";
+  if (lower.startsWith("en")) return "en";
+  if (lower.startsWith("ja")) return "ja";
+  if (lower.startsWith("zh")) return "zh-CN";
+  // exact
+  if (SUPPORTED_LANGUAGES.has(tag as Language)) return tag as Language;
+  return DEFAULT_LANGUAGE;
+}
+
 export const AXIS_LABELS: Record<keyof AxesValues, { ko: string; en: string }> =
   {
     register: { ko: "격식", en: "Register" },

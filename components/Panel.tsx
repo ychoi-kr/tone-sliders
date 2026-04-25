@@ -24,6 +24,7 @@ import {
   type ModelId,
   type SpeechLevel,
 } from "@/lib/models";
+import { buildPromptExport } from "@/lib/prompt";
 
 const AXIS_KEYS: (keyof AxesValues)[] = [
   "register",
@@ -129,7 +130,26 @@ export function Panel({
   const [meta, setMeta] = useState<OutputMeta | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+
+  const handleCopyPrompt = async () => {
+    const text = buildPromptExport({
+      source,
+      axes: state.axes,
+      language: state.language,
+      speechLevel:
+        state.language === "ko" ? state.speechLevel : "default",
+      modelId: state.model,
+    });
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setError("클립보드 접근 실패. HTTPS 또는 localhost 환경이 필요합니다.");
+    }
+  };
 
   const setAxis = (key: keyof AxesValues, value: number) =>
     onChange({ ...state, axes: { ...state.axes, [key]: value } });
@@ -365,25 +385,37 @@ export function Panel({
         </div>
       </div>
 
-      {loading ? (
+      <div className="flex gap-2">
+        {loading ? (
+          <Button
+            onClick={handleStop}
+            variant="outline"
+            size="sm"
+            className="flex-1"
+          >
+            중지
+          </Button>
+        ) : (
+          <Button
+            onClick={handleTransform}
+            disabled={!source.trim()}
+            size="sm"
+            className="flex-1"
+          >
+            변환
+          </Button>
+        )}
         <Button
-          onClick={handleStop}
+          onClick={handleCopyPrompt}
+          disabled={!source.trim()}
           variant="outline"
           size="sm"
-          className="w-full"
+          className="min-w-[7.5rem] text-xs"
+          title="시스템 프롬프트 + 사용자 메시지 + 설정을 클립보드에 복사 (Claude 웹·ChatGPT 등에 그대로 붙여넣기)"
         >
-          중지
+          {copied ? "복사됨" : "프롬프트 복사"}
         </Button>
-      ) : (
-        <Button
-          onClick={handleTransform}
-          disabled={!source.trim()}
-          size="sm"
-          className="w-full"
-        >
-          변환
-        </Button>
-      )}
+      </div>
 
       {error && (
         <div className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-destructive">

@@ -1,14 +1,12 @@
 import { createHash } from "node:crypto";
-import type {
-  AxesValues,
-  Language,
-  ModelId,
-  SpeechLevel,
-} from "./models";
+import type { AxesValues, Language, ModelId, SpeechLevel } from "./models";
 
-export const ESTIMATE_PROMPT_VERSION = "estimate-v1";
+// Language re-export (호출 측 편의)
+export type { Language };
 
-export const ESTIMATE_SYSTEM_PROMPT = `당신은 문체 분석기다. 입력된 한국어 또는 외국어 텍스트를 5개 축의 정수 좌표(각 0~10)로 분류한다.
+export const ESTIMATE_PROMPT_VERSION = "estimate-v2";
+
+export const ESTIMATE_SYSTEM_PROMPT = `당신은 문체 분석기다. 입력된 한국어 또는 외국어 텍스트를 5개 축의 정수 좌표(각 0~10)로 분류하고, 텍스트의 언어와 한국어인 경우 종결어미체도 함께 분류한다.
 
 각 축의 rubric:
 
@@ -47,7 +45,14 @@ export const ESTIMATE_SYSTEM_PROMPT = `당신은 문체 분석기다. 입력된 
 7: 명료 ("…이다")
 10: 단호·선언 ("이게 답이다.")
 
-추가로 한국어 텍스트인 경우 종결어미 체를 분류:
+언어 감지 (language):
+- "ko" — 한국어
+- "en" — English
+- "ja" — 日本語
+- "zh-CN" — 中文 (간체·번체 모두 포함)
+- "other" — 위 4개 외 모든 언어
+
+한국어 텍스트인 경우 종결어미 체를 분류 (speechLevel):
 - "haera": "~한다", "~이다" (해라체, 평서·서술)
 - "haeyo": "~해요", "~예요" (해요체, 비격식 존댓말)
 - "hapsho": "~합니다", "~입니다" (합쇼체, 격식 존댓말)
@@ -56,6 +61,7 @@ export const ESTIMATE_SYSTEM_PROMPT = `당신은 문체 분석기다. 입력된 
 
 출력은 반드시 다음 JSON 형식만 (코드블록·해설 없음):
 {
+  "language": "ko" | "en" | "ja" | "zh-CN" | "other",
   "register": 0~10 정수,
   "authorPresence": 0~10 정수,
   "rhetorical": 0~10 정수,
@@ -64,27 +70,19 @@ export const ESTIMATE_SYSTEM_PROMPT = `당신은 문체 분석기다. 입력된 
   "speechLevel": "haera" | "haeyo" | "hapsho" | "hae" | null
 }`;
 
-export function buildEstimateUserMessage(
-  source: string,
-  language: Language,
-): string {
-  const langName =
-    language === "ko"
-      ? "한국어"
-      : language === "ja"
-        ? "日本語"
-        : language === "zh-CN"
-          ? "中文"
-          : "English";
+export function buildEstimateUserMessage(source: string): string {
   return [
-    `[입력 텍스트 — 언어: ${langName}]`,
+    "[입력 텍스트]",
     source,
     "",
-    "위 텍스트의 좌표를 위 형식의 JSON으로만 출력하라.",
+    "위 텍스트의 언어와 좌표를 위 형식의 JSON으로만 출력하라.",
   ].join("\n");
 }
 
+export type DetectedLanguage = Language | "other";
+
 export interface EstimateResult {
+  language: DetectedLanguage;
   axes: AxesValues;
   speechLevel: SpeechLevel | null;
 }
@@ -103,6 +101,14 @@ const VALID_SPEECH: ReadonlySet<string> = new Set([
   "haeyo",
   "hapsho",
   "hae",
+]);
+
+const VALID_LANGUAGE: ReadonlySet<DetectedLanguage> = new Set([
+  "ko",
+  "en",
+  "ja",
+  "zh-CN",
+  "other",
 ]);
 
 export function parseEstimateJson(raw: string): EstimateResult {
@@ -139,13 +145,15 @@ export function parseEstimateJson(raw: string): EstimateResult {
   const sl = parsed.speechLevel;
   if (typeof sl === "string" && VALID_SPEECH.has(sl)) {
     speechLevel = sl as SpeechLevel;
-  } else if (sl === null || sl === undefined) {
-    speechLevel = null;
-  } else {
-    speechLevel = null;
   }
 
-  return { axes, speechLevel };
+  let language: DetectedLanguage = "other";
+  const lang = parsed.language;
+  if (typeof lang === "string" && VALID_LANGUAGE.has(lang as DetectedLanguage)) {
+    language = lang as DetectedLanguage;
+  }
+
+  return { language, axes, speechLevel };
 }
 
 // ---------- 캐시 ----------
@@ -157,16 +165,12 @@ interface CacheEntry {
 
 const estimateCache = new Map<string, CacheEntry>();
 
-export function makeCacheKey(
-  source: string,
-  model: ModelId,
-  language: Language,
-): string {
+export function makeCacheKey(source: string, model: ModelId): string {
   const hash = createHash("sha256")
     .update(source)
     .digest("hex")
     .slice(0, 16);
-  return `${hash}:${model}:${language}:${ESTIMATE_PROMPT_VERSION}`;
+  return `${hash}:${model}:${ESTIMATE_PROMPT_VERSION}`;
 }
 
 export function getCachedEstimate(key: string): EstimateResult | null {
